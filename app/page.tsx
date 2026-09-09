@@ -1,19 +1,19 @@
+import { FeaturesSection } from "@/components/home/features-section"
+import { HeroSection } from "@/components/home/hero-section"
+import { SiteFooter } from "@/components/layout/site-footer"
+import { SiteHeader } from "@/components/layout/site-header"
+
 export default function Home() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-50">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold tracking-tight">
-          PortfolioHub
-        </h1>
+    <>
+      <SiteHeader />
 
-        <p className="mt-4 text-zinc-500">
-          학생 활동을 기록하고 관리하는 플랫폼
-        </p>
+      <main className="flex-1">
+        <HeroSection />
+        <FeaturesSection />
+      </main>
 
-        <button className="mt-10 rounded-xl bg-black px-6 py-3 text-white transition hover:bg-zinc-800">
-          시작하기
-        </button>
-      </div>
-    </main>
-  );
+      <SiteFooter />
+    </>
+  )
 }
