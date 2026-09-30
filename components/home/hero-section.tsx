@@ -2,8 +2,11 @@ import Link from "next/link"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+
+/** Shared sizing for the two hero calls to action. */
+const CTA_CLASSES = "h-11 w-full rounded-full px-7 text-sm sm:w-auto"
 
 type HeroSectionProps = {
   eyebrow?: string
@@ -48,10 +51,9 @@ function HeroSection({
       </p>
 
       <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
-        <Button
-          size="lg"
-          className="h-11 w-full rounded-full px-7 text-sm sm:w-auto"
-          render={<Link href={primaryAction.href} />}
+        <Link
+          href={primaryAction.href}
+          className={cn(buttonVariants({ size: "lg" }), CTA_CLASSES)}
         >
           {primaryAction.label}
           <HugeiconsIcon
@@ -59,16 +61,17 @@ function HeroSection({
             strokeWidth={2}
             className="size-4 transition-transform group-hover/button:translate-x-0.5"
           />
-        </Button>
+        </Link>
 
-        <Button
-          variant="outline"
-          size="lg"
-          className="h-11 w-full rounded-full px-7 text-sm sm:w-auto"
-          render={<Link href={secondaryAction.href} />}
+        <Link
+          href={secondaryAction.href}
+          className={cn(
+            buttonVariants({ variant: "outline", size: "lg" }),
+            CTA_CLASSES
+          )}
         >
           {secondaryAction.label}
-        </Button>
+        </Link>
       </div>
     </section>
   )

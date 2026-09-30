@@ -1,8 +1,11 @@
 import Link from "next/link"
 
 import { Logo } from "@/components/layout/logo"
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+
+/** Shared sizing for the header's auth links. */
+const NAV_ACTION_CLASSES = "rounded-full px-3.5 text-[0.8125rem]"
 
 /**
  * Slim translucent top bar shared by the marketing pages.
@@ -27,21 +30,24 @@ function SiteHeader({
 
         {actions ? (
           <nav className="flex items-center gap-1.5">
-            <Button
-              variant="ghost"
-              size="lg"
-              className="rounded-full px-3.5 text-[0.8125rem]"
-              render={<Link href="/login" />}
+            <Link
+              href="/login"
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "lg" }),
+                NAV_ACTION_CLASSES
+              )}
             >
               로그인
-            </Button>
-            <Button
-              size="lg"
-              className="rounded-full px-3.5 text-[0.8125rem]"
-              render={<Link href="/login" />}
+            </Link>
+            <Link
+              href="/login"
+              className={cn(
+                buttonVariants({ size: "lg" }),
+                NAV_ACTION_CLASSES
+              )}
             >
               시작하기
-            </Button>
+            </Link>
           </nav>
         ) : null}
       </div>
