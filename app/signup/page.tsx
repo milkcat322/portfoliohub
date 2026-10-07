@@ -2,19 +2,19 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 import { AuthCard } from "@/components/auth/auth-card"
-import { LoginForm } from "@/components/auth/login-form"
+import { SignupForm } from "@/components/auth/signup-form"
 import { SocialAuthButtons } from "@/components/auth/social-auth-buttons"
 import { Logo } from "@/components/layout/logo"
 import { safeRedirectPath } from "@/lib/navigation"
 
 export const metadata: Metadata = {
-  title: "로그인 · PortfolioHub",
-  description: "PortfolioHub에 로그인해 나의 활동 기록을 관리하세요.",
+  title: "회원가입 · PortfolioHub",
+  description: "PortfolioHub 계정을 만들고 나의 활동을 기록해 보세요.",
 }
 
-export default async function LoginPage({
+export default async function SignupPage({
   searchParams,
-}: PageProps<"/login">) {
+}: PageProps<"/signup">) {
   const redirectTo = safeRedirectPath((await searchParams).redirectTo)
 
   return (
@@ -22,21 +22,21 @@ export default async function LoginPage({
       <Logo />
 
       <AuthCard
-        title="다시 만나서 반가워요"
-        description="이메일로 로그인하고 나의 포트폴리오를 이어서 작성하세요."
+        title="PortfolioHub 시작하기"
+        description="이메일로 계정을 만들고 활동 기록을 시작하세요."
         footer={
           <span>
-            아직 계정이 없으신가요?{" "}
+            이미 계정이 있으신가요?{" "}
             <Link
-              href="/signup"
+              href="/login"
               className="font-medium text-foreground underline-offset-4 hover:underline"
             >
-              회원가입
+              로그인
             </Link>
           </span>
         }
       >
-        <LoginForm redirectTo={redirectTo} />
+        <SignupForm redirectTo={redirectTo} />
 
         <div className="my-5 flex items-center gap-3">
           <span className="h-px flex-1 bg-border" />

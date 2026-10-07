@@ -1,7 +1,9 @@
 import Link from "next/link"
 
+import { SignOutButton } from "@/components/auth/sign-out-button"
 import { Logo } from "@/components/layout/logo"
 import { buttonVariants } from "@/components/ui/button"
+import { createClient } from "@/lib/supabase/server"
 import { cn } from "@/lib/utils"
 
 /** Shared sizing for the header's auth links. */
@@ -9,15 +11,25 @@ const NAV_ACTION_CLASSES = "rounded-full px-3.5 text-[0.8125rem]"
 
 /**
  * Slim translucent top bar shared by the marketing pages.
- * `actions={false}` hides the auth buttons (e.g. on the login page itself).
+ *
+ * The actions reflect the session: showing "로그인 / 시작하기" to someone who is
+ * already signed in is misleading, because proxy.ts bounces them straight back
+ * to the dashboard and it looks as if the buttons did nothing.
+ *
+ * `actions={false}` hides them entirely (e.g. on the login page itself).
  */
-function SiteHeader({
+async function SiteHeader({
   className,
   actions = true,
 }: {
   className?: string
   actions?: boolean
 }) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   return (
     <header
       className={cn(
@@ -30,24 +42,47 @@ function SiteHeader({
 
         {actions ? (
           <nav className="flex items-center gap-1.5">
-            <Link
-              href="/login"
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "lg" }),
-                NAV_ACTION_CLASSES
-              )}
-            >
-              로그인
-            </Link>
-            <Link
-              href="/dashboard"
-              className={cn(
-                buttonVariants({ size: "lg" }),
-                NAV_ACTION_CLASSES
-              )}
-            >
-              시작하기
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className={cn(
+                    buttonVariants({ size: "lg" }),
+                    NAV_ACTION_CLASSES
+                  )}
+                >
+                  대시보드
+                </Link>
+                <SignOutButton
+                  className={cn(
+                    "border-transparent bg-transparent hover:bg-muted",
+                    NAV_ACTION_CLASSES,
+                    "h-7"
+                  )}
+                />
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "lg" }),
+                    NAV_ACTION_CLASSES
+                  )}
+                >
+                  로그인
+                </Link>
+                <Link
+                  href="/signup"
+                  className={cn(
+                    buttonVariants({ size: "lg" }),
+                    NAV_ACTION_CLASSES
+                  )}
+                >
+                  시작하기
+                </Link>
+              </>
+            )}
           </nav>
         ) : null}
       </div>

@@ -13,7 +13,8 @@ type HeroSectionProps = {
   title?: string
   description?: string
   primaryAction?: { label: string; href: string }
-  secondaryAction?: { label: string; href: string }
+  /** Pass `null` to show a single call to action. */
+  secondaryAction?: { label: string; href: string } | null
   className?: string
 }
 
@@ -25,7 +26,7 @@ function HeroSection({
   eyebrow = "학생 포트폴리오, 한 곳에서",
   title = "PortfolioHub",
   description = "동아리, 대회, 프로젝트, 봉사까지. 흩어져 있던 활동 기록을 한 곳에 모아 나만의 포트폴리오로 정리하세요.",
-  primaryAction = { label: "시작하기", href: "/login" },
+  primaryAction = { label: "시작하기", href: "/signup" },
   secondaryAction = { label: "로그인", href: "/login" },
   className,
 }: HeroSectionProps) {
@@ -63,15 +64,17 @@ function HeroSection({
           />
         </Link>
 
-        <Link
-          href={secondaryAction.href}
-          className={cn(
-            buttonVariants({ variant: "outline", size: "lg" }),
-            CTA_CLASSES
-          )}
-        >
-          {secondaryAction.label}
-        </Link>
+        {secondaryAction ? (
+          <Link
+            href={secondaryAction.href}
+            className={cn(
+              buttonVariants({ variant: "outline", size: "lg" }),
+              CTA_CLASSES
+            )}
+          >
+            {secondaryAction.label}
+          </Link>
+        ) : null}
       </div>
     </section>
   )

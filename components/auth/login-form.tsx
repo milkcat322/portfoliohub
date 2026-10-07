@@ -2,27 +2,51 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 import { AuthField } from "@/components/auth/auth-field"
 import { Button } from "@/components/ui/button"
+import { AUTH_NETWORK_ERROR, describeAuthError } from "@/lib/auth-errors"
+import { createClient } from "@/lib/supabase/client"
 
 /**
- * Email + password login form.
+ * Email + password login against Supabase.
  *
- * Auth is not wired up yet: submitting only reports the collected values
- * through `onSubmit` so the eventual auth call can be dropped in from outside.
+ * On success it refreshes the router so the Server Components re-render with
+ * the new session cookie before navigating.
  */
-function LoginForm({
-  onSubmit,
-}: {
-  onSubmit?: (values: { email: string; password: string }) => void
-}) {
+function LoginForm({ redirectTo = "/dashboard" }: { redirectTo?: string }) {
+  const router = useRouter()
+
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
+  const [error, setError] = React.useState<string | null>(null)
+  const [submitting, setSubmitting] = React.useState(false)
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    onSubmit?.({ email, password })
+    setError(null)
+    setSubmitting(true)
+
+    try {
+      const supabase = createClient()
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      })
+
+      if (signInError) {
+        setError(describeAuthError(signInError.message))
+        return
+      }
+
+      router.replace(redirectTo)
+      router.refresh()
+    } catch {
+      setError(AUTH_NETWORK_ERROR)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -59,12 +83,19 @@ function LoginForm({
         }
       />
 
+      {error ? (
+        <p role="alert" className="text-[0.8125rem] text-destructive">
+          {error}
+        </p>
+      ) : null}
+
       <Button
         type="submit"
         size="lg"
+        disabled={submitting}
         className="mt-1 h-10 w-full rounded-xl text-sm"
       >
-        로그인
+        {submitting ? "로그인 중…" : "로그인"}
       </Button>
     </form>
   )

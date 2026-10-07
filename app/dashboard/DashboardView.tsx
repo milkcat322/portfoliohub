@@ -16,6 +16,7 @@ import {
   registerActivity,
   updateActivity,
 } from "@/lib/activity"
+import { createClient } from "@/lib/supabase/client"
 
 function toFormDefaults(activity: Activity) {
   return {
@@ -51,8 +52,12 @@ export function DashboardView({
 
   const formRef = React.useRef<HTMLDivElement>(null)
 
+  // The browser client reads the session from cookies, so every query below
+  // runs as the signed-in user and row level security scopes it to their rows.
+  const supabase = React.useMemo(() => createClient(), [])
+
   async function refresh() {
-    setActivities(await getActivities())
+    setActivities(await getActivities(supabase))
   }
 
   /**
@@ -63,9 +68,9 @@ export function DashboardView({
     setError(null)
 
     if (editing) {
-      await updateActivity(editing.id, values)
+      await updateActivity(supabase, editing.id, values)
     } else {
-      await registerActivity(values)
+      await registerActivity(supabase, values)
     }
 
     await refresh()
@@ -84,7 +89,7 @@ export function DashboardView({
     }
 
     try {
-      await deleteActivity(activity.id)
+      await deleteActivity(supabase, activity.id)
       setError(null)
 
       // Drop out of edit mode if the row being edited is the one deleted.

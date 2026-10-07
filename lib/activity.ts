@@ -1,8 +1,9 @@
-import { supabase } from "@/lib/supabase"
+import type { SupabaseClient } from "@supabase/supabase-js"
 
 /** A row of the `activities` table. */
 export type Activity = {
   id: string
+  user_id: string
   title: string
   category: string
   description: string | null
@@ -17,6 +18,9 @@ export type Activity = {
  * Field names match the table columns so form state can be passed straight
  * through. Dates are `date` columns, so they take `YYYY-MM-DD` strings — not
  * `Date` objects or ISO timestamps.
+ *
+ * `user_id` is deliberately absent: the column defaults to `auth.uid()` and
+ * row level security enforces it, so the browser never gets to choose an owner.
  */
 export type ActivityInput = {
   title: string
@@ -83,9 +87,17 @@ function toRowValues(input: ActivityInput): ActivityRowValues {
 }
 
 /**
- * Loads every activity, newest first.
+ * Loads the signed-in user's activities, newest first.
+ *
+ * No `user_id` filter is needed — the row level security policy already limits
+ * the result to rows owned by the caller.
+ *
+ * Pass the browser client from a Client Component, or the per-request server
+ * client from a Server Component.
  */
-export async function getActivities(): Promise<Activity[]> {
+export async function getActivities(
+  supabase: SupabaseClient
+): Promise<Activity[]> {
   const { data, error } = await supabase
     .from("activities")
     .select("*")
@@ -101,9 +113,10 @@ export async function getActivities(): Promise<Activity[]> {
 
 /**
  * Inserts one activity and returns the stored row, including the generated
- * `id` and `created_at`.
+ * `id`, `user_id` and `created_at`.
  */
 export async function registerActivity(
+  supabase: SupabaseClient,
   input: ActivityInput
 ): Promise<Activity> {
   const { data, error } = await supabase
@@ -123,6 +136,7 @@ export async function registerActivity(
  * Overwrites one activity and returns the updated row.
  */
 export async function updateActivity(
+  supabase: SupabaseClient,
   id: string,
   input: ActivityInput
 ): Promise<Activity> {
@@ -152,7 +166,10 @@ export async function updateActivity(
 /**
  * Deletes one activity.
  */
-export async function deleteActivity(id: string): Promise<void> {
+export async function deleteActivity(
+  supabase: SupabaseClient,
+  id: string
+): Promise<void> {
   const { data, error } = await supabase
     .from("activities")
     .delete()
