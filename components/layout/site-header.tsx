@@ -40,7 +40,7 @@ function SiteHeader({
               로그인
             </Link>
             <Link
-              href="/login"
+              href="/dashboard"
               className={cn(
                 buttonVariants({ size: "lg" }),
                 NAV_ACTION_CLASSES
