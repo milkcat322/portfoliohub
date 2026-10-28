@@ -3,6 +3,7 @@
 import * as React from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Search01Icon } from "@hugeicons/core-free-icons"
+import Link from "next/link"
 
 import type { Activity } from "@/lib/activity"
 import type { ActivityFormValues } from "@/components/activity/ActivityForm"
@@ -10,10 +11,13 @@ import type { ActivityFormValues } from "@/components/activity/ActivityForm"
 import { ActivityForm } from "@/components/activity/ActivityForm"
 import { ActivityList } from "@/components/activity/ActivityList"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import {
   deleteActivity,
   getActivities,
   registerActivity,
+  setActivityFavorite,
+  uploadActivityImage,
   updateActivity,
 } from "@/lib/activity"
 import { createClient } from "@/lib/supabase/client"
@@ -48,6 +52,7 @@ export function DashboardView({
     React.useState<Activity[]>(initialActivities)
   const [error, setError] = React.useState<string | null>(initialError)
   const [query, setQuery] = React.useState("")
+  const [favoritesOnly, setFavoritesOnly] = React.useState(false)
   const [editing, setEditing] = React.useState<Activity | null>(null)
 
   const formRef = React.useRef<HTMLDivElement>(null)
@@ -66,11 +71,16 @@ export function DashboardView({
    */
   async function handleSubmit(values: ActivityFormValues) {
     setError(null)
+    const { imageFile, ...activityValues } = values
+    const imageUrl = imageFile
+      ? await uploadActivityImage(supabase, imageFile)
+      : editing?.image_url ?? null
+    const input = { ...activityValues, image_url: imageUrl }
 
     if (editing) {
-      await updateActivity(supabase, editing.id, values)
+      await updateActivity(supabase, editing.id, input)
     } else {
-      await registerActivity(supabase, values)
+      await registerActivity(supabase, input)
     }
 
     await refresh()
@@ -107,20 +117,47 @@ export function DashboardView({
     }
   }
 
+  async function handleToggleFavorite(activity: Activity) {
+    try {
+      await setActivityFavorite(supabase, activity.id, !activity.favorite)
+      setError(null)
+      await refresh()
+    } catch (favoriteError) {
+      setError(
+        favoriteError instanceof Error
+          ? favoriteError.message
+          : "즐겨찾기를 변경하지 못했습니다."
+      )
+    }
+  }
+
   const filtered = React.useMemo(() => {
     const keyword = query.trim().toLowerCase()
 
-    if (!keyword) {
-      return activities
-    }
-
-    return activities.filter((activity) =>
-      activity.title.toLowerCase().includes(keyword)
+    return activities.filter(
+      (activity) =>
+        (!favoritesOnly || activity.favorite) &&
+        (!keyword || activity.title.toLowerCase().includes(keyword))
     )
-  }, [activities, query])
+  }, [activities, favoritesOnly, query])
 
   return (
     <>
+      <nav className="mt-8 flex flex-wrap gap-2" aria-label="포트폴리오 메뉴">
+        <Link
+          href="/dashboard/statistics"
+          className="rounded-full border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          통계
+        </Link>
+        <Link
+          href="/dashboard/timeline"
+          className="rounded-full border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          타임라인
+        </Link>
+      </nav>
+
       <div className="relative mt-8">
         <HugeiconsIcon
           icon={Search01Icon}
@@ -142,6 +179,7 @@ export function DashboardView({
           // Remounting on target change reloads `defaultValues` into the form.
           key={editing?.id ?? "new"}
           defaultValues={editing ? toFormDefaults(editing) : undefined}
+          existingImageUrl={editing?.image_url}
           onSubmit={handleSubmit}
           onCancel={editing ? () => setEditing(null) : undefined}
           title={editing ? "활동 수정" : "활동 등록"}
@@ -156,15 +194,27 @@ export function DashboardView({
       </div>
 
       <section className="mt-10">
-        <div className="mb-4 flex items-baseline justify-between gap-3">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-heading text-base font-medium tracking-tight">
             활동 목록
           </h2>
-          <p className="text-xs text-muted-foreground tabular-nums">
-            {query.trim()
-              ? `${filtered.length} / ${activities.length}개`
-              : `${activities.length}개`}
-          </p>
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              size="sm"
+              variant={favoritesOnly ? "secondary" : "ghost"}
+              aria-pressed={favoritesOnly}
+              onClick={() => setFavoritesOnly((value) => !value)}
+              className="rounded-full"
+            >
+              ⭐ 즐겨찾기만
+            </Button>
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {query.trim() || favoritesOnly
+                ? `${filtered.length} / ${activities.length}개`
+                : `${activities.length}개`}
+            </p>
+          </div>
         </div>
 
         {error ? (
@@ -180,8 +230,11 @@ export function DashboardView({
           activities={filtered}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onToggleFavorite={handleToggleFavorite}
           emptyMessage={
-            query.trim()
+            favoritesOnly && filtered.length === 0
+              ? "즐겨찾기한 활동이 없습니다."
+              : query.trim()
               ? `'${query.trim()}'에 해당하는 활동이 없습니다.`
               : "등록된 활동이 없습니다."
           }

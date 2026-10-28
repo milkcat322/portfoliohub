@@ -10,6 +10,8 @@ export type Activity = {
   start_date: string
   end_date: string | null
   created_at: string
+  favorite: boolean
+  image_url: string | null
 }
 
 /**
@@ -29,6 +31,7 @@ export type ActivityInput = {
   start_date: string
   /** Omit for an activity that is still ongoing. */
   end_date?: string | null
+  image_url?: string | null
 }
 
 /** The exact column payload sent to Supabase. */
@@ -38,9 +41,17 @@ type ActivityRowValues = {
   description: string | null
   start_date: string
   end_date: string | null
+  image_url: string | null
 }
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+const IMAGE_EXTENSIONS: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+}
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024
 
 function assertDate(label: string, value: string) {
   if (!DATE_PATTERN.test(value)) {
@@ -83,6 +94,7 @@ function toRowValues(input: ActivityInput): ActivityRowValues {
     description,
     start_date: input.start_date,
     end_date: endDate,
+    image_url: input.image_url || null,
   }
 }
 
@@ -101,6 +113,7 @@ export async function getActivities(
   const { data, error } = await supabase
     .from("activities")
     .select("*")
+    .order("favorite", { ascending: false })
     .order("created_at", { ascending: false })
     .returns<Activity[]>()
 
@@ -109,6 +122,76 @@ export async function getActivities(
   }
 
   return data ?? []
+}
+
+/**
+ * Updates whether an activity is pinned as a favorite.
+ */
+export async function setActivityFavorite(
+  supabase: SupabaseClient,
+  id: string,
+  favorite: boolean
+): Promise<Activity> {
+  const { data, error } = await supabase
+    .from("activities")
+    .update({ favorite })
+    .eq("id", id)
+    .select()
+    .returns<Activity[]>()
+
+  if (error) {
+    throw new Error(`즐겨찾기를 변경하지 못했습니다: ${error.message}`)
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error("즐겨찾기를 변경할 활동을 찾지 못했습니다.")
+  }
+
+  return data[0]
+}
+
+/**
+ * Uploads an activity image to the signed-in user's Storage folder.
+ */
+export async function uploadActivityImage(
+  supabase: SupabaseClient,
+  file: File
+): Promise<string> {
+  const extension = IMAGE_EXTENSIONS[file.type]
+  if (!extension) {
+    throw new Error("JPG, PNG, WebP 또는 GIF 이미지만 업로드할 수 있습니다.")
+  }
+  if (file.size > MAX_IMAGE_SIZE) {
+    throw new Error("이미지는 5MB 이하만 업로드할 수 있습니다.")
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError) {
+    throw new Error(`로그인 정보를 확인하지 못했습니다: ${authError.message}`)
+  }
+  if (!user) {
+    throw new Error("이미지를 업로드하려면 로그인해 주세요.")
+  }
+
+  const path = `${user.id}/${crypto.randomUUID()}.${extension}`
+  const { error } = await supabase.storage
+    .from("portfolio-images")
+    .upload(path, file, {
+      cacheControl: "3600",
+      contentType: file.type,
+      upsert: false,
+    })
+
+  if (error) {
+    throw new Error(`이미지를 업로드하지 못했습니다: ${error.message}`)
+  }
+
+  return supabase.storage.from("portfolio-images").getPublicUrl(path).data
+    .publicUrl
 }
 
 /**

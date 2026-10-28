@@ -13,8 +13,14 @@ create table if not exists public.activities (
   description text,
   start_date date not null,
   end_date date,
+  favorite boolean not null default false,
+  image_url text,
   created_at timestamptz not null default now()
 );
+
+alter table public.activities
+  add column if not exists favorite boolean not null default false,
+  add column if not exists image_url text;
 
 -- ---------------------------------------------------------------------------
 -- 1-1. 기존 테이블의 기본값 보정
@@ -98,7 +104,60 @@ create policy "activities_delete_own"
   using (auth.uid() = user_id);
 
 -- ---------------------------------------------------------------------------
--- 4. 확인용 조회
+-- 4. Activity image storage
+-- ---------------------------------------------------------------------------
+insert into storage.buckets (
+  id,
+  name,
+  public,
+  file_size_limit,
+  allowed_mime_types
+)
+values (
+  'portfolio-images',
+  'portfolio-images',
+  true,
+  5242880,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "portfolio_images_upload_own" on storage.objects;
+create policy "portfolio_images_upload_own"
+  on storage.objects for insert
+  to authenticated
+  with check (
+    bucket_id = 'portfolio-images'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "portfolio_images_update_own" on storage.objects;
+create policy "portfolio_images_update_own"
+  on storage.objects for update
+  to authenticated
+  using (
+    bucket_id = 'portfolio-images'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  )
+  with check (
+    bucket_id = 'portfolio-images'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "portfolio_images_delete_own" on storage.objects;
+create policy "portfolio_images_delete_own"
+  on storage.objects for delete
+  to authenticated
+  using (
+    bucket_id = 'portfolio-images'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- ---------------------------------------------------------------------------
+-- 5. 확인용 조회
 --
 -- SQL Editor는 마지막 구문의 결과만 보여주므로 한 번에 나오도록 합쳤습니다.
 -- 아래 세 가지를 확인하세요.

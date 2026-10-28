@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { ActivityImagePreview } from "@/components/activity/ActivityImagePreview"
 
 /**
  * Formats a `date` column (`YYYY-MM-DD`) for display.
@@ -45,6 +46,8 @@ export type ActivityCardProps = {
   onEdit?: (activity: Activity) => void
   /** Omit to hide the delete button. */
   onDelete?: (activity: Activity) => void
+  /** Omit to show a read-only favorite indicator. */
+  onToggleFavorite?: (activity: Activity) => void
   className?: string
 }
 
@@ -60,9 +63,10 @@ export function ActivityCard({
   activity,
   onEdit,
   onDelete,
+  onToggleFavorite,
   className,
 }: ActivityCardProps) {
-  const hasActions = Boolean(onEdit || onDelete)
+  const hasActions = Boolean(onEdit || onDelete || onToggleFavorite)
 
   return (
     <Card
@@ -82,8 +86,27 @@ export function ActivityCard({
             </Badge>
           </div>
 
-          {hasActions ? (
+          {hasActions || activity.favorite ? (
             <div className="flex shrink-0 items-center gap-0.5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`${activity.title} 즐겨찾기 ${activity.favorite ? "해제" : "추가"}`}
+                aria-pressed={activity.favorite}
+                title={activity.favorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                disabled={!onToggleFavorite}
+                onClick={() => onToggleFavorite?.(activity)}
+                className={cn(
+                  "rounded-lg",
+                  activity.favorite
+                    ? "text-amber-500 hover:text-amber-600"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span aria-hidden="true">{activity.favorite ? "⭐" : "☆"}</span>
+              </Button>
+
               {onEdit ? (
                 <Button
                   type="button"
@@ -125,6 +148,14 @@ export function ActivityCard({
           </CardDescription>
         ) : null}
       </CardHeader>
+      {activity.image_url ? (
+        <div className="px-5 pb-5">
+          <ActivityImagePreview
+            imageUrl={activity.image_url}
+            title={activity.title}
+          />
+        </div>
+      ) : null}
     </Card>
   )
 }

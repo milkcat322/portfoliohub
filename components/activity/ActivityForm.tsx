@@ -28,6 +28,7 @@ export type ActivityFormValues = {
   description: string | null
   start_date: string
   end_date: string | null
+  imageFile: File | null
 }
 
 type ActivityFormState = {
@@ -80,6 +81,8 @@ type ActivityFormProps = {
   onSubmit?: (values: ActivityFormValues) => void | Promise<void>
   /** Prefilled values, e.g. when reusing the form to edit an activity. */
   defaultValues?: Partial<ActivityFormState>
+  /** Existing image shown while editing; a newly selected file replaces it. */
+  existingImageUrl?: string | null
   /** Shown as a secondary button; omit to hide it. */
   onCancel?: () => void
   title?: string
@@ -98,6 +101,7 @@ type ActivityFormProps = {
 export function ActivityForm({
   onSubmit,
   defaultValues,
+  existingImageUrl,
   onCancel,
   title: heading = "활동 등록",
   description: headingDescription = "대회, 동아리, 프로젝트, 봉사 등 기록하고 싶은 활동을 남겨보세요.",
@@ -110,6 +114,8 @@ export function ActivityForm({
   })
   const [error, setError] = React.useState<string | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
+  const [imageFile, setImageFile] = React.useState<File | null>(null)
+  const imageInputRef = React.useRef<HTMLInputElement>(null)
 
   function setField<K extends keyof ActivityFormState>(
     key: K,
@@ -156,9 +162,14 @@ export function ActivityForm({
         description: description || null,
         start_date: values.start_date,
         end_date: values.end_date || null,
+        imageFile,
       })
 
       setValues(EMPTY_STATE)
+      setImageFile(null)
+      if (imageInputRef.current) {
+        imageInputRef.current.value = ""
+      }
       setError(null)
     } catch (submitError) {
       setError(
@@ -219,6 +230,28 @@ export function ActivityForm({
               onChange={(event) => setField("description", event.target.value)}
               className="min-h-24 rounded-xl bg-transparent px-3 py-2.5 text-sm md:text-sm"
             />
+          </Field>
+
+          <Field id="image" label="활동 이미지" hint="선택 · 5MB 이하">
+            <Input
+              ref={imageInputRef}
+              id="image"
+              name="image"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={(event) => {
+                setImageFile(event.target.files?.[0] ?? null)
+                setError(null)
+              }}
+              className="h-auto rounded-xl bg-transparent px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-secondary-foreground"
+            />
+            <p className="text-xs text-muted-foreground">
+              {imageFile
+                ? `${imageFile.name} · ${(imageFile.size / 1024 / 1024).toFixed(1)}MB`
+                : existingImageUrl
+                  ? "새 이미지를 선택하면 기존 이미지가 교체됩니다."
+                  : "JPG, PNG, WebP, GIF"}
+            </p>
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">

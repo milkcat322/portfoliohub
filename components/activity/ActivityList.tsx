@@ -9,6 +9,7 @@ export type ActivityListProps = {
   onEdit?: (activity: Activity) => void
   /** Passed through to each card; omit to hide the delete button. */
   onDelete?: (activity: Activity) => void
+  onToggleFavorite?: (activity: Activity) => void
   /** Shown instead of the grid when `activities` is empty. */
   emptyMessage?: string
   className?: string
@@ -24,6 +25,7 @@ export function ActivityList({
   activities,
   onEdit,
   onDelete,
+  onToggleFavorite,
   emptyMessage = "등록된 활동이 없습니다.",
   className,
 }: ActivityListProps) {
@@ -43,6 +45,7 @@ export function ActivityList({
           activity={activity}
           onEdit={onEdit}
           onDelete={onDelete}
+          onToggleFavorite={onToggleFavorite}
         />
       ))}
     </div>
