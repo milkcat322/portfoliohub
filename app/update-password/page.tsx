@@ -19,7 +19,7 @@ export default async function UpdatePasswordPage() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect("/login?authError=callback_failed")
+    redirect("/login?authError=code_exchange_failed")
   }
 
   return (
