@@ -6,9 +6,8 @@ import { createClient } from "@/lib/supabase/server"
 
 export default async function Home() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data } = await supabase.auth.getClaims()
+  const signedIn = Boolean(data?.claims.sub)
 
   return (
     <>
@@ -22,11 +21,11 @@ export default async function Home() {
         */}
         <HeroSection
           primaryAction={
-            user
+            signedIn
               ? { label: "대시보드로 가기", href: "/dashboard" }
               : { label: "시작하기", href: "/signup" }
           }
-          secondaryAction={user ? null : { label: "로그인", href: "/login" }}
+          secondaryAction={signedIn ? null : { label: "로그인", href: "/login" }}
         />
         <FeaturesSection />
       </main>

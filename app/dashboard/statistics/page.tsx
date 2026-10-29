@@ -13,15 +13,15 @@ import { createClient } from "@/lib/supabase/server"
 
 export default async function StatisticsPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [userResult, activities] = await Promise.all([
+    supabase.auth.getUser(),
+    getActivities(supabase),
+  ])
+  const user = userResult.data.user
 
   if (!user) {
     redirect("/login?redirectTo=/dashboard/statistics")
   }
-
-  const activities = await getActivities(supabase)
   const categories = new Map<string, number>()
   const years = new Map<string, number>()
 

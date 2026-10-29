@@ -75,7 +75,7 @@ function LoginForm({ redirectTo = "/dashboard" }: { redirectTo?: string }) {
         required
         action={
           <Link
-            href="/login"
+            href="/forgot-password"
             className="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
           >
             비밀번호를 잊으셨나요?

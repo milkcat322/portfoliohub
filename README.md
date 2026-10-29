@@ -30,6 +30,22 @@ in the Supabase SQL Editor. It creates or updates the activity columns, Storage
 bucket, and user-scoped Storage policies used for image uploads. Recharts is
 included in the project dependencies for the statistics charts.
 
+### Authentication setup
+
+Set the Supabase project's Site URL to `https://portfoliohub-mu.vercel.app` and
+add `https://portfoliohub-mu.vercel.app/auth/callback` to the Auth redirect URL
+allow list. Add `http://localhost:3000/auth/callback` as well for local testing.
+
+To enable Google or GitHub sign-in, enable the provider in Supabase
+Authentication and add its Supabase callback URL to the OAuth app in Google or
+GitHub. Supabase shows the callback URL in that provider's settings. Keep the
+provider client ID and secret in Supabase; they are not application environment
+variables.
+
+The login page includes password recovery. Supabase sends the recovery email to
+`/auth/callback`, which exchanges the one-time code before sending the user to
+the new-password form.
+
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More

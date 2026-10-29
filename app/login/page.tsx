@@ -15,7 +15,8 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: PageProps<"/login">) {
-  const redirectTo = safeRedirectPath((await searchParams).redirectTo)
+  const { redirectTo: redirectValue, authError } = await searchParams
+  const redirectTo = safeRedirectPath(redirectValue)
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-16">
@@ -36,6 +37,13 @@ export default async function LoginPage({
           </span>
         }
       >
+        {authError === "callback_failed" ? (
+          <p role="alert" className="mb-4 text-[0.8125rem] text-destructive">
+            로그인 확인에 실패했습니다. 링크가 만료되었을 수 있습니다. 다시
+            시도해 주세요.
+          </p>
+        ) : null}
+
         <LoginForm redirectTo={redirectTo} />
 
         <div className="my-5 flex items-center gap-3">
@@ -44,7 +52,7 @@ export default async function LoginPage({
           <span className="h-px flex-1 bg-border" />
         </div>
 
-        <SocialAuthButtons />
+        <SocialAuthButtons redirectTo={redirectTo} />
       </AuthCard>
     </main>
   )

@@ -7,15 +7,15 @@ import { createClient } from "@/lib/supabase/server"
 
 export default async function TimelinePage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [userResult, activities] = await Promise.all([
+    supabase.auth.getUser(),
+    getActivities(supabase),
+  ])
+  const user = userResult.data.user
 
   if (!user) {
     redirect("/login?redirectTo=/dashboard/timeline")
   }
-
-  const activities = await getActivities(supabase)
 
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-12 sm:py-16">

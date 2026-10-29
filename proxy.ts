@@ -4,7 +4,7 @@ import { createServerClient } from "@supabase/ssr"
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/env"
 
 /** Routes that require a signed-in user, including anything nested under them. */
-const PROTECTED_PREFIXES = ["/dashboard"]
+const PROTECTED_PREFIXES = ["/dashboard", "/update-password"]
 
 /** Routes that make no sense once signed in. */
 const AUTH_ONLY_PATHS = ["/login", "/signup"]

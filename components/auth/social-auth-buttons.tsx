@@ -1,7 +1,12 @@
+"use client"
+
+import * as React from "react"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import { GithubIcon, GoogleIcon } from "@hugeicons/core-free-icons"
 
 import { Button } from "@/components/ui/button"
+import { describeAuthError } from "@/lib/auth-errors"
+import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 
 type SocialProvider = {
@@ -15,25 +20,57 @@ const SOCIAL_PROVIDERS: SocialProvider[] = [
   { id: "github", label: "GitHub로 계속하기", icon: GithubIcon },
 ]
 
-/**
- * Third-party sign-in buttons. UI only for now — no provider is connected, so
- * these render as inert buttons until auth is added.
- */
+/** Starts OAuth sign-in and returns the user through the shared auth callback. */
 function SocialAuthButtons({
   providers = SOCIAL_PROVIDERS,
+  redirectTo = "/dashboard",
   className,
 }: {
   providers?: SocialProvider[]
+  redirectTo?: string
   className?: string
 }) {
+  const [activeProvider, setActiveProvider] = React.useState<string | null>(null)
+  const [error, setError] = React.useState<string | null>(null)
+
+  async function signIn(provider: SocialProvider["id"]) {
+    setError(null)
+    setActiveProvider(provider)
+
+    try {
+      const callbackUrl = new URL("/auth/callback", window.location.origin)
+      callbackUrl.searchParams.set("next", redirectTo)
+
+      const { error: signInError } = await createClient().auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: callbackUrl.toString() },
+      })
+
+      if (signInError) {
+        setError(describeAuthError(signInError.message))
+        setActiveProvider(null)
+      }
+    } catch {
+      setError("로그인 요청을 시작하지 못했습니다. 잠시 후 다시 시도해 주세요.")
+      setActiveProvider(null)
+    }
+  }
+
   return (
     <div className={cn("grid gap-2", className)}>
+      {error ? (
+        <p role="alert" className="text-[0.8125rem] text-destructive">
+          {error}
+        </p>
+      ) : null}
       {providers.map((provider) => (
         <Button
           key={provider.id}
           type="button"
           variant="outline"
           size="lg"
+          disabled={activeProvider !== null}
+          onClick={() => void signIn(provider.id)}
           className="h-10 w-full justify-center gap-2 rounded-xl text-sm font-normal"
         >
           <HugeiconsIcon
@@ -41,7 +78,9 @@ function SocialAuthButtons({
             strokeWidth={1.8}
             className="size-4"
           />
-          {provider.label}
+          {activeProvider === provider.id
+            ? "연결 중…"
+            : provider.label}
         </Button>
       ))}
     </div>

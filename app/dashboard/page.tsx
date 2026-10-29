@@ -14,22 +14,22 @@ export default async function DashboardPage() {
 
   // proxy.ts does an optimistic cookie check; this verifies the session with
   // the auth server before anything is rendered.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [userResult, activitiesResult] = await Promise.all([
+    supabase.auth.getUser(),
+    getActivities(supabase)
+      .then((activities) => ({ activities, error: null }))
+      .catch((error: unknown) => ({
+        activities: [] as Activity[],
+        error:
+          error instanceof Error
+            ? error.message
+            : "활동 목록을 불러오지 못했습니다.",
+      })),
+  ])
+  const user = userResult.data.user
 
   if (!user) {
     redirect("/login?redirectTo=/dashboard")
-  }
-
-  let activities: Activity[] = []
-  let loadError: string | null = null
-
-  try {
-    activities = await getActivities(supabase)
-  } catch (error) {
-    loadError =
-      error instanceof Error ? error.message : "활동 목록을 불러오지 못했습니다."
   }
 
   return (
@@ -47,7 +47,10 @@ export default async function DashboardPage() {
         <SignOutButton className="h-9 w-full shrink-0 rounded-full px-4 text-sm sm:w-auto" />
       </header>
 
-      <DashboardView initialActivities={activities} initialError={loadError} />
+      <DashboardView
+        initialActivities={activitiesResult.activities}
+        initialError={activitiesResult.error}
+      />
     </main>
   )
 }
