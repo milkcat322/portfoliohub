@@ -44,7 +44,7 @@ export default async function SignupPage({
           <span className="h-px flex-1 bg-border" />
         </div>
 
-        <SocialAuthButtons redirectTo={redirectTo} />
+        <SocialAuthButtons />
       </AuthCard>
     </main>
   )

@@ -23,11 +23,9 @@ const SOCIAL_PROVIDERS: SocialProvider[] = [
 /** Starts OAuth sign-in and returns the user through the shared auth callback. */
 function SocialAuthButtons({
   providers = SOCIAL_PROVIDERS,
-  redirectTo = "/dashboard",
   className,
 }: {
   providers?: SocialProvider[]
-  redirectTo?: string
   className?: string
 }) {
   const [activeProvider, setActiveProvider] = React.useState<string | null>(null)
@@ -50,15 +48,14 @@ function SocialAuthButtons({
 
     try {
       const callbackUrl = new URL("/auth/callback", window.location.origin)
-      callbackUrl.searchParams.set("next", redirectTo)
-
-      const { data, error: signInError } = await createClient().auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: callbackUrl.toString(),
-          skipBrowserRedirect: true,
-        },
-      })
+      const { data, error: signInError } =
+        await createClient().auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: callbackUrl.toString(),
+            skipBrowserRedirect: true,
+          },
+        })
 
       if (signInError) {
         setError(describeAuthError(signInError.message))

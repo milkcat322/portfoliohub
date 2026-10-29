@@ -55,7 +55,7 @@ export default async function LoginPage({
           <span className="h-px flex-1 bg-border" />
         </div>
 
-        <SocialAuthButtons redirectTo={redirectTo} />
+        <SocialAuthButtons />
       </AuthCard>
     </main>
   )
