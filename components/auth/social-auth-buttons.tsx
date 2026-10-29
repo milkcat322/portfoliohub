@@ -33,6 +33,17 @@ function SocialAuthButtons({
   const [activeProvider, setActiveProvider] = React.useState<string | null>(null)
   const [error, setError] = React.useState<string | null>(null)
 
+  React.useEffect(() => {
+    function handlePageShow(event: PageTransitionEvent) {
+      if (event.persisted) {
+        setActiveProvider(null)
+      }
+    }
+
+    window.addEventListener("pageshow", handlePageShow)
+    return () => window.removeEventListener("pageshow", handlePageShow)
+  }, [])
+
   async function signIn(provider: SocialProvider["id"]) {
     setError(null)
     setActiveProvider(provider)
@@ -41,15 +52,27 @@ function SocialAuthButtons({
       const callbackUrl = new URL("/auth/callback", window.location.origin)
       callbackUrl.searchParams.set("next", redirectTo)
 
-      const { error: signInError } = await createClient().auth.signInWithOAuth({
+      const { data, error: signInError } = await createClient().auth.signInWithOAuth({
         provider,
-        options: { redirectTo: callbackUrl.toString() },
+        options: {
+          redirectTo: callbackUrl.toString(),
+          skipBrowserRedirect: true,
+        },
       })
 
       if (signInError) {
         setError(describeAuthError(signInError.message))
         setActiveProvider(null)
+        return
       }
+
+      if (!data.url) {
+        setError("인증 제공자가 로그인 주소를 반환하지 않았습니다. 잠시 후 다시 시도해 주세요.")
+        setActiveProvider(null)
+        return
+      }
+
+      window.location.assign(data.url)
     } catch {
       setError("로그인 요청을 시작하지 못했습니다. 잠시 후 다시 시도해 주세요.")
       setActiveProvider(null)

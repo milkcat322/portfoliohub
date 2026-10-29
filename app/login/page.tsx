@@ -39,8 +39,8 @@ export default async function LoginPage({
       >
         {authError ? (
           <p role="alert" className="mb-4 text-[0.8125rem] text-destructive">
-            {authError === "provider_denied"
-              ? "Google 또는 GitHub 인증이 취소되었거나 거부되었습니다."
+            {authError === "provider_error"
+              ? "Google 또는 GitHub 인증이 거부되었습니다. OAuth 제공자 설정과 허용된 리디렉션 URL을 확인해 주세요."
               : authError === "missing_code"
                 ? "인증 서버에서 로그인 코드를 받지 못했습니다. Supabase Redirect URL 설정을 확인해 주세요."
                 : "로그인 세션을 만들지 못했습니다. 다시 시도해 주세요. 계속되면 관리자에게 알려 주세요."}

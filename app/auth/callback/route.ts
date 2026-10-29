@@ -6,12 +6,19 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/env"
 
 export async function GET(request: NextRequest) {
   const providerError = request.nextUrl.searchParams.get("error")
+  const providerErrorDescription =
+    request.nextUrl.searchParams.get("error_description")
   const code = request.nextUrl.searchParams.get("code")
   const next = safeRedirectPath(request.nextUrl.searchParams.get("next") ?? undefined)
   const loginUrl = new URL("/login", request.url)
 
   if (providerError) {
-    loginUrl.searchParams.set("authError", "provider_denied")
+    console.error(
+      "OAuth provider returned an error:",
+      providerError,
+      providerErrorDescription
+    )
+    loginUrl.searchParams.set("authError", "provider_error")
     return NextResponse.redirect(loginUrl)
   }
 
