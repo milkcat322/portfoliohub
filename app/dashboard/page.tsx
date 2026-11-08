@@ -7,10 +7,13 @@ import { SignOutButton } from "@/components/auth/sign-out-button"
 import { getActivities } from "@/lib/activity"
 import { createClient } from "@/lib/supabase/server"
 
-export default async function DashboardPage() {
+export default async function DashboardPage(props: PageProps<"/dashboard">) {
   // Reading cookies already opts this route into dynamic rendering, so the
   // list is never baked into a static build.
   const supabase = await createClient()
+  // `?tag=` and `?category=` let the graph and statistics pages link
+  // straight to a filtered list.
+  const { tag, category } = await props.searchParams
 
   // proxy.ts does an optimistic cookie check; this verifies the session with
   // the auth server before anything is rendered.
@@ -50,6 +53,8 @@ export default async function DashboardPage() {
       <DashboardView
         initialActivities={activitiesResult.activities}
         initialError={activitiesResult.error}
+        initialTag={typeof tag === "string" ? tag : null}
+        initialCategory={typeof category === "string" ? category : null}
       />
     </main>
   )

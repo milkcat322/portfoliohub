@@ -12,8 +12,24 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { NativeSelect } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea"
+import { Markdown } from "@/components/activity/Markdown"
+import { TagInput } from "@/components/activity/TagInput"
+import { ACTIVITY_CATEGORIES } from "@/lib/activity"
 import { cn } from "@/lib/utils"
+
+/** Sentinel `<option>` value that switches the dropdown to a text field. */
+const CUSTOM_CATEGORY = "__custom__"
+
+const MARKDOWN_PLACEHOLDER = `## 활동 개요
+어떤 활동이었는지 적어보세요.
+
+## 나의 역할
+- 맡은 일
+- **핵심 성과**
+
+## 배운 점`
 
 /**
  * What the form hands to its parent.
@@ -28,6 +44,7 @@ export type ActivityFormValues = {
   description: string | null
   start_date: string
   end_date: string | null
+  tags: string[]
   imageFile: File | null
 }
 
@@ -37,6 +54,7 @@ type ActivityFormState = {
   description: string
   start_date: string
   end_date: string
+  tags: string[]
 }
 
 const EMPTY_STATE: ActivityFormState = {
@@ -45,6 +63,7 @@ const EMPTY_STATE: ActivityFormState = {
   description: "",
   start_date: "",
   end_date: "",
+  tags: [],
 }
 
 const INPUT_CLASSES = "h-10 rounded-xl bg-transparent px-3 text-sm md:text-sm"
@@ -83,6 +102,10 @@ type ActivityFormProps = {
   defaultValues?: Partial<ActivityFormState>
   /** Existing image shown while editing; a newly selected file replaces it. */
   existingImageUrl?: string | null
+  /** Dropdown entries; defaults to the preset 생기부 categories. */
+  categoryOptions?: readonly string[]
+  /** Tags already in use, suggested while typing. */
+  tagSuggestions?: string[]
   /** Shown as a secondary button; omit to hide it. */
   onCancel?: () => void
   title?: string
@@ -102,6 +125,8 @@ export function ActivityForm({
   onSubmit,
   defaultValues,
   existingImageUrl,
+  categoryOptions = ACTIVITY_CATEGORIES,
+  tagSuggestions = [],
   onCancel,
   title: heading = "활동 등록",
   description: headingDescription = "대회, 동아리, 프로젝트, 봉사 등 기록하고 싶은 활동을 남겨보세요.",
@@ -112,6 +137,14 @@ export function ActivityForm({
     ...EMPTY_STATE,
     ...defaultValues,
   })
+  // A category that is not one of the options (e.g. typed before the dropdown
+  // existed) opens straight into the text field so it is not silently lost.
+  const [customCategory, setCustomCategory] = React.useState(
+    () =>
+      Boolean(defaultValues?.category) &&
+      !categoryOptions.includes(defaultValues?.category ?? "")
+  )
+  const [previewing, setPreviewing] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
   const [imageFile, setImageFile] = React.useState<File | null>(null)
@@ -138,7 +171,7 @@ export function ActivityForm({
     }
 
     if (!category) {
-      setError("카테고리를 입력해 주세요.")
+      setError("카테고리를 선택해 주세요.")
       return
     }
 
@@ -162,10 +195,13 @@ export function ActivityForm({
         description: description || null,
         start_date: values.start_date,
         end_date: values.end_date || null,
+        tags: values.tags,
         imageFile,
       })
 
       setValues(EMPTY_STATE)
+      setCustomCategory(false)
+      setPreviewing(false)
       setImageFile(null)
       if (imageInputRef.current) {
         imageInputRef.current.value = ""
@@ -210,27 +246,125 @@ export function ActivityForm({
           </Field>
 
           <Field id="category" label="카테고리">
-            <Input
-              id="category"
-              name="category"
-              placeholder="대회"
-              value={values.category}
-              onChange={(event) => setField("category", event.target.value)}
-              className={INPUT_CLASSES}
+            {customCategory ? (
+              <div className="flex gap-2">
+                <Input
+                  id="category"
+                  name="category"
+                  placeholder="새 카테고리 이름"
+                  autoFocus
+                  value={values.category}
+                  onChange={(event) => setField("category", event.target.value)}
+                  className={INPUT_CLASSES}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setCustomCategory(false)
+                    setField("category", "")
+                  }}
+                  className="h-10 shrink-0 rounded-xl px-3 text-sm"
+                >
+                  목록에서 선택
+                </Button>
+              </div>
+            ) : (
+              <NativeSelect
+                id="category"
+                name="category"
+                value={values.category}
+                onChange={(event) => {
+                  if (event.target.value === CUSTOM_CATEGORY) {
+                    setCustomCategory(true)
+                    setField("category", "")
+                  } else {
+                    setField("category", event.target.value)
+                  }
+                }}
+                className={cn(!values.category && "text-muted-foreground")}
+              >
+                <option value="" disabled>
+                  카테고리를 선택하세요
+                </option>
+                {categoryOptions.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+                <option value={CUSTOM_CATEGORY}>+ 직접 추가…</option>
+              </NativeSelect>
+            )}
+          </Field>
+
+          <Field id="tags" label="태그" hint="선택 · 여러 개 가능">
+            <TagInput
+              id="tags"
+              value={values.tags}
+              onChange={(tags) => setField("tags", tags)}
+              suggestions={tagSuggestions}
             />
           </Field>
 
-          <Field id="description" label="설명" hint="선택">
-            <Textarea
-              id="description"
-              name="description"
-              rows={4}
-              placeholder="어떤 활동이었는지, 무엇을 맡았는지 적어보세요."
-              value={values.description}
-              onChange={(event) => setField("description", event.target.value)}
-              className="min-h-24 rounded-xl bg-transparent px-3 py-2.5 text-sm md:text-sm"
-            />
-          </Field>
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="description" className="text-[0.8125rem]">
+                설명
+                <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                  선택 · 마크다운 지원
+                </span>
+              </Label>
+              <div
+                role="tablist"
+                aria-label="설명 편집 모드"
+                className="flex rounded-lg bg-muted p-0.5 text-xs"
+              >
+                {[
+                  { key: false, label: "작성" },
+                  { key: true, label: "미리보기" },
+                ].map((tab) => (
+                  <button
+                    key={tab.label}
+                    type="button"
+                    role="tab"
+                    aria-selected={previewing === tab.key}
+                    onClick={() => setPreviewing(tab.key)}
+                    className={cn(
+                      "rounded-md px-2.5 py-1 transition-colors",
+                      previewing === tab.key
+                        ? "bg-background text-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {previewing ? (
+              <div className="min-h-40 rounded-xl border border-input px-3 py-2.5 text-sm leading-relaxed text-muted-foreground">
+                {values.description.trim() ? (
+                  <Markdown>{values.description}</Markdown>
+                ) : (
+                  <p>미리 볼 내용이 없습니다.</p>
+                )}
+              </div>
+            ) : (
+              <Textarea
+                id="description"
+                name="description"
+                rows={8}
+                placeholder={MARKDOWN_PLACEHOLDER}
+                value={values.description}
+                onChange={(event) => setField("description", event.target.value)}
+                className="min-h-40 rounded-xl bg-transparent px-3 py-2.5 font-mono text-[0.8125rem] leading-relaxed md:text-[0.8125rem]"
+              />
+            )}
+            <p className="text-xs text-muted-foreground">
+              <code>## 제목</code> · <code>- 목록</code> · <code>**굵게**</code> ·{" "}
+              <code>[링크](https://…)</code> · <code>- [ ] 체크리스트</code>
+            </p>
+          </div>
 
           <Field id="image" label="활동 이미지" hint="선택 · 5MB 이하">
             <Input

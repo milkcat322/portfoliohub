@@ -12,6 +12,93 @@ export type Activity = {
   created_at: string
   favorite: boolean
   image_url: string | null
+  /** Free-form keywords; an activity can carry several. Never null once read. */
+  tags: string[]
+}
+
+/**
+ * Categories offered in the form's dropdown, modelled on the sections of the
+ * 학교생활기록부. Keeping a fixed list stops near-duplicates such as "대회" and
+ * "대회 " from splitting the category filter and statistics.
+ */
+export const ACTIVITY_CATEGORIES = [
+  "자율활동",
+  "동아리활동",
+  "봉사활동",
+  "진로활동",
+  "교과 세특",
+  "수상·대회",
+  "독서",
+  "프로젝트",
+  "기타",
+] as const
+
+/**
+ * Preset categories followed by any other category already in use, so rows
+ * saved before the dropdown existed stay selectable and filterable.
+ */
+export function collectCategories(activities: Pick<Activity, "category">[]) {
+  const categories: string[] = [...ACTIVITY_CATEGORIES]
+
+  for (const { category } of activities) {
+    if (category && !categories.includes(category)) {
+      categories.push(category)
+    }
+  }
+
+  return categories
+}
+
+export const MAX_TAGS = 20
+export const MAX_TAG_LENGTH = 30
+
+/**
+ * Cleans one tag: trims, drops a leading `#`, and collapses inner whitespace
+ * so "#인공 지능" and "인공  지능" end up as the same keyword.
+ */
+export function normalizeTag(value: string) {
+  return value.trim().replace(/^#+/, "").replace(/\s+/g, " ").trim()
+}
+
+/** Normalizes, de-duplicates (case-insensitively) and validates a tag list. */
+export function normalizeTags(values: readonly string[]) {
+  const seen = new Set<string>()
+  const tags: string[] = []
+
+  for (const value of values) {
+    const tag = normalizeTag(value)
+    const key = tag.toLowerCase()
+
+    if (!tag || seen.has(key)) continue
+
+    if (tag.length > MAX_TAG_LENGTH) {
+      throw new Error(`태그는 ${MAX_TAG_LENGTH}자 이하로 입력해 주세요. (${tag})`)
+    }
+
+    seen.add(key)
+    tags.push(tag)
+  }
+
+  if (tags.length > MAX_TAGS) {
+    throw new Error(`태그는 최대 ${MAX_TAGS}개까지 달 수 있습니다.`)
+  }
+
+  return tags
+}
+
+/** Every tag in use with how many activities carry it, most used first. */
+export function collectTags(activities: Pick<Activity, "tags">[]) {
+  const counts = new Map<string, number>()
+
+  for (const activity of activities) {
+    for (const tag of activity.tags) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1)
+    }
+  }
+
+  return [...counts.entries()]
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((left, right) => right.count - left.count || left.tag.localeCompare(right.tag))
 }
 
 /**
@@ -32,6 +119,7 @@ export type ActivityInput = {
   /** Omit for an activity that is still ongoing. */
   end_date?: string | null
   image_url?: string | null
+  tags?: string[]
 }
 
 /** The exact column payload sent to Supabase. */
@@ -42,6 +130,12 @@ type ActivityRowValues = {
   start_date: string
   end_date: string | null
   image_url: string | null
+  tags: string[]
+}
+
+/** Fills in `tags` for rows written before the column existed. */
+function toActivity(row: Activity): Activity {
+  return { ...row, tags: row.tags ?? [] }
 }
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
@@ -95,6 +189,7 @@ function toRowValues(input: ActivityInput): ActivityRowValues {
     start_date: input.start_date,
     end_date: endDate,
     image_url: input.image_url || null,
+    tags: normalizeTags(input.tags ?? []),
   }
 }
 
@@ -121,7 +216,7 @@ export async function getActivities(
     throw new Error(`활동 목록을 불러오지 못했습니다: ${error.message}`)
   }
 
-  return data ?? []
+  return (data ?? []).map(toActivity)
 }
 
 /**
@@ -147,7 +242,7 @@ export async function setActivityFavorite(
     throw new Error("즐겨찾기를 변경할 활동을 찾지 못했습니다.")
   }
 
-  return data[0]
+  return toActivity(data[0])
 }
 
 /**
@@ -212,7 +307,7 @@ export async function registerActivity(
     throw new Error(`활동을 저장하지 못했습니다: ${error.message}`)
   }
 
-  return data
+  return toActivity(data)
 }
 
 /**
@@ -243,7 +338,7 @@ export async function updateActivity(
     )
   }
 
-  return data[0]
+  return toActivity(data[0])
 }
 
 /**

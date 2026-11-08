@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { ActivityImagePreview } from "@/components/activity/ActivityImagePreview"
+import { Markdown } from "@/components/activity/Markdown"
 
 /**
  * Formats a `date` column (`YYYY-MM-DD`) for display.
@@ -48,6 +49,10 @@ export type ActivityCardProps = {
   onDelete?: (activity: Activity) => void
   /** Omit to show a read-only favorite indicator. */
   onToggleFavorite?: (activity: Activity) => void
+  /** Makes tag chips clickable, e.g. to filter the list by that tag. */
+  onTagClick?: (tag: string) => void
+  /** Highlights the tag currently used as a filter. */
+  activeTag?: string | null
   className?: string
 }
 
@@ -64,6 +69,8 @@ export function ActivityCard({
   onEdit,
   onDelete,
   onToggleFavorite,
+  onTagClick,
+  activeTag = null,
   className,
 }: ActivityCardProps) {
   const hasActions = Boolean(onEdit || onDelete || onToggleFavorite)
@@ -142,9 +149,38 @@ export function ActivityCard({
           {formatPeriod(activity.start_date, activity.end_date)}
         </p>
 
+        {activity.tags.length > 0 ? (
+          <ul className="flex flex-wrap gap-1.5" aria-label="태그">
+            {activity.tags.map((tag) => (
+              <li key={tag}>
+                {onTagClick ? (
+                  <button
+                    type="button"
+                    onClick={() => onTagClick(tag)}
+                    aria-pressed={activeTag === tag}
+                    title={`#${tag} 태그로 거르기`}
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-xs transition-colors",
+                      activeTag === tag
+                        ? "bg-foreground text-background"
+                        : "bg-muted text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    #{tag}
+                  </button>
+                ) : (
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                    #{tag}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
         {activity.description ? (
-          <CardDescription className="mt-1 text-[0.8125rem] leading-relaxed whitespace-pre-line">
-            {activity.description}
+          <CardDescription className="mt-1 text-[0.8125rem] leading-relaxed">
+            <Markdown>{activity.description}</Markdown>
           </CardDescription>
         ) : null}
       </CardHeader>

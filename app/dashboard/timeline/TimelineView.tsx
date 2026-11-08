@@ -4,6 +4,7 @@ import * as React from "react"
 
 import type { Activity } from "@/lib/activity"
 
+import { Markdown } from "@/components/activity/Markdown"
 import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
@@ -121,8 +122,17 @@ export function TimelineView({ activities }: { activities: Activity[] }) {
               <DialogTitle className="text-lg tracking-tight">
                 {selected.title}
               </DialogTitle>
-              <DialogDescription className="whitespace-pre-line">
-                {selected.description || "등록된 상세 설명이 없습니다."}
+              {selected.tags.length > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  {selected.tags.map((tag) => `#${tag}`).join("  ")}
+                </p>
+              ) : null}
+              <DialogDescription render={<div />} className="max-h-[60vh] overflow-y-auto">
+                {selected.description ? (
+                  <Markdown>{selected.description}</Markdown>
+                ) : (
+                  "등록된 상세 설명이 없습니다."
+                )}
               </DialogDescription>
             </DialogHeader>
           </DialogContent>

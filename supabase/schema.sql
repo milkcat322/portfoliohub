@@ -15,12 +15,19 @@ create table if not exists public.activities (
   end_date date,
   favorite boolean not null default false,
   image_url text,
+  tags text[] not null default '{}',
   created_at timestamptz not null default now()
 );
 
 alter table public.activities
   add column if not exists favorite boolean not null default false,
-  add column if not exists image_url text;
+  add column if not exists image_url text,
+  -- 생기부 연계용 키워드. 카테고리와 달리 한 활동에 여러 개를 달 수 있습니다.
+  add column if not exists tags text[] not null default '{}';
+
+-- 태그로 활동을 찾는 질의(tags @> array['...'])를 빠르게 합니다.
+create index if not exists activities_tags_idx
+  on public.activities using gin (tags);
 
 -- ---------------------------------------------------------------------------
 -- 1-1. 기존 테이블의 기본값 보정

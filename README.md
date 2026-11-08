@@ -25,8 +25,22 @@ activity statistics (`/dashboard/statistics`), and a year-grouped timeline
 (`/dashboard/timeline`). Activities can also have an image stored in the
 `portfolio-images` Supabase Storage bucket.
 
+- **Categories** are picked from a dropdown of 생기부 sections (with a
+  "직접 추가" escape hatch), and the activity list can be filtered by category.
+- **Tags**: each activity can carry several keywords (`tags text[]`). Click a
+  tag on a card to filter by it; `/dashboard?tag=…` links straight to a filter.
+- **Tag graph** (`/dashboard/graph`): an Obsidian-style force graph of tags and
+  activities. Selecting a tag lists its activities, co-occurring tags, and
+  ideas for extending it into 생기부 areas it has not covered yet.
+- **Markdown descriptions** with a write/preview toggle (GFM: headings, lists,
+  tables, checklists). Raw HTML is not rendered.
+- **Export** (`/dashboard/report`): a printable summary report (save as PDF
+  from the print dialog), a `.pptx` deck generated in the browser with
+  `pptxgenjs`, or a Markdown file.
+
 To configure a Supabase project, run [`supabase/schema.sql`](./supabase/schema.sql)
-in the Supabase SQL Editor. It creates or updates the activity columns, Storage
+in the Supabase SQL Editor (re-run it after pulling the tags feature — it adds
+the `tags` column). It creates or updates the activity columns, Storage
 bucket, and user-scoped Storage policies used for image uploads. Recharts is
 included in the project dependencies for the statistics charts.
 

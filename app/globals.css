@@ -128,3 +128,15 @@
     @apply font-sans;
   }
 }
+
+/* Report export: A4 pages with print margins, white paper regardless of theme. */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm 14mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+}
